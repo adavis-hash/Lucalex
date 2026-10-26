@@ -25,12 +25,15 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to explore
 ## Project Structure
 
 ```
-my-app/
+Lucalex/
 ├── app/                  # Next.js App Router pages and layout
+│   ├── admin/            # Admin order management dashboard
+│   ├── orders/           # Customer order history & tracking
 │   ├── globals.css       # MODULO Design System tokens & utilities
-│   ├── layout.tsx        # Root layout with fonts & metadata
+│   ├── layout.tsx        # Root layout with fonts & providers
 │   └── page.tsx          # Storefront homepage
-├── components/           # Reusable UI components
+├── components/           # Modular UI components (Navbar, CartDrawer, etc.)
+├── context/              # React context providers (AuthContext, CartContext)
 ├── data/                 # Static catalog data & types
 ├── lib/
 │   └── supabase/         # Browser, Server, and Admin Supabase clients
