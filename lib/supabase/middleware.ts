@@ -2,6 +2,16 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { Database } from '@/types/database.types';
 
+function sanitizeUrl(rawUrl?: string): string {
+  if (!rawUrl) return '';
+  let url = rawUrl.trim();
+  if (!url) return '';
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = `https://${url}`;
+  }
+  return url.replace(/\/+$/, '');
+}
+
 /**
  * Updates the user session across request cookies in Next.js middleware.
  * Ensures auth tokens stay fresh and redirects unauthenticated users when needed.
@@ -11,12 +21,15 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabasePublishableKey =
+  const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const rawKey =
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!supabaseUrl || !supabasePublishableKey) {
+  const supabaseUrl = sanitizeUrl(rawUrl);
+  const supabasePublishableKey = rawKey?.trim();
+
+  if (!supabaseUrl || !supabasePublishableKey || supabaseUrl.includes('placeholder')) {
     return supabaseResponse;
   }
 

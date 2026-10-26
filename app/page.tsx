@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import AnnouncementBar from '../components/AnnouncementBar';
 import Navbar from '../components/Navbar';
 import HeroSection from '../components/HeroSection';
@@ -31,11 +31,12 @@ export default function Home() {
   const [products, setProducts] = useState<ProductItem[]>(PRODUCTS);
   const [collections, setCollections] = useState<CollectionItem[]>(COLLECTIONS);
 
-  const supabase = useMemo(() => createClient(), []);
-
   useEffect(() => {
     async function loadSupabaseCatalog() {
       try {
+        const supabase = createClient();
+        if (!supabase || typeof supabase.from !== 'function') return;
+
         const [colRes, prodRes] = await Promise.all([
           supabase.from('collections').select('*').order('name'),
           supabase.from('products').select('*').order('created_at'),
@@ -83,7 +84,7 @@ export default function Home() {
     }
 
     loadSupabaseCatalog();
-  }, [supabase]);
+  }, []);
 
   const handleSelectCollection = (collectionId: string) => {
     setSelectedCollectionId(collectionId);
