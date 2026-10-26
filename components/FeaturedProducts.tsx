@@ -3,6 +3,7 @@ import { Eye, Plus, Check, Sparkles, Layers, User } from 'lucide-react';
 import { PRODUCTS, ProductItem } from '../data/products';
 
 interface FeaturedProductsProps {
+  products?: ProductItem[];
   onQuickView: (product: ProductItem) => void;
   onAddToCart: (product: ProductItem) => void;
   selectedCollectionId: string | null;
@@ -11,6 +12,7 @@ interface FeaturedProductsProps {
 }
 
 export default function FeaturedProducts({
+  products = PRODUCTS,
   onQuickView,
   onAddToCart,
   selectedCollectionId,
@@ -18,8 +20,8 @@ export default function FeaturedProducts({
   cartItemIds = [],
 }: FeaturedProductsProps) {
   const filteredProducts = selectedCollectionId 
-    ? PRODUCTS.filter(p => p.collectionId === selectedCollectionId)
-    : PRODUCTS;
+    ? products.filter(p => p.collectionId === selectedCollectionId)
+    : products;
 
   return (
     <section id="featured-sets" className="section-padding" style={{ backgroundColor: '#f8fafc' }}>

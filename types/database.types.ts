@@ -280,6 +280,12 @@ export type Database = {
         Args: Record<string, never>;
         Returns: boolean;
       };
+      create_order: {
+        Args: {
+          p_shipping_address?: Json;
+        };
+        Returns: string;
+      };
     };
     Enums: {
       user_role: UserRole;

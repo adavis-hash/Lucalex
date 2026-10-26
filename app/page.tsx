@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import AnnouncementBar from '../components/AnnouncementBar';
 import Navbar from '../components/Navbar';
 import HeroSection from '../components/HeroSection';
@@ -13,34 +13,80 @@ import Footer from '../components/Footer';
 import QuickViewModal from '../components/QuickViewModal';
 import CartDrawer from '../components/CartDrawer';
 import SearchModal from '../components/SearchModal';
-import { PRODUCTS, ProductItem } from '../data/products';
+import { PRODUCTS, COLLECTIONS, ProductItem, CollectionItem } from '../data/products';
+import { useCart } from '../context/CartContext';
+import { createClient } from '../lib/supabase/client';
+import { Database } from '../types/database.types';
+
+type CollectionRow = Database['public']['Tables']['collections']['Row'];
+type ProductRow = Database['public']['Tables']['products']['Row'];
 
 export default function Home() {
+  const { cartItems, addToCart, cartOpen, setCartOpen } = useCart();
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [quickViewProduct, setQuickViewProduct] = useState<ProductItem | null>(null);
-  const [cartOpen, setCartOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   
-  // Initial demonstration item in the concept bag (flagship set)
-  const [cartItems, setCartItems] = useState<ProductItem[]>([PRODUCTS[0]]);
+  // Catalog state initialized with static fallback, loaded dynamically from Supabase
+  const [products, setProducts] = useState<ProductItem[]>(PRODUCTS);
+  const [collections, setCollections] = useState<CollectionItem[]>(COLLECTIONS);
 
-  const handleAddToCart = (product: ProductItem) => {
-    if (!cartItems.some(item => item.id === product.id)) {
-      setCartItems(prev => [...prev, product]);
+  const supabase = useMemo(() => createClient(), []);
+
+  useEffect(() => {
+    async function loadSupabaseCatalog() {
+      try {
+        const [colRes, prodRes] = await Promise.all([
+          supabase.from('collections').select('*').order('name'),
+          supabase.from('products').select('*').order('created_at'),
+        ]);
+
+        if (colRes.data && colRes.data.length > 0) {
+          setCollections(
+            colRes.data.map((c: CollectionRow) => ({
+              id: c.id,
+              name: c.name,
+              subtitle: c.subtitle || '',
+              image: c.image,
+              featuredBadge: c.featured_badge || '',
+              itemCount: c.item_count || '',
+              accentColor: c.accent_color || '#334155',
+            }))
+          );
+        }
+
+        if (prodRes.data && prodRes.data.length > 0) {
+          setProducts(
+            prodRes.data.map((p: ProductRow) => ({
+              id: p.id,
+              setNumber: p.set_number,
+              name: p.name,
+              collectionId: p.collection_id || '',
+              collectionName: p.collection_name || '',
+              pieces: p.pieces,
+              age: p.age,
+              price: Number(p.price),
+              isNew: p.is_new,
+              isFeatured: p.is_featured,
+              badge: p.badge || undefined,
+              image: p.image,
+              tagline: p.tagline || '',
+              dimensions: p.dimensions || '',
+              features: Array.isArray(p.features) ? (p.features as string[]) : [],
+              difficulty: p.difficulty || 'Intermediate',
+            }))
+          );
+        }
+      } catch (err) {
+        console.warn('Supabase catalog fetch fallback used:', err);
+      }
     }
-  };
 
-  const handleRemoveFromCart = (productId: string) => {
-    setCartItems(prev => prev.filter(item => item.id !== productId));
-  };
-
-  const handleClearCart = () => {
-    setCartItems([]);
-  };
+    loadSupabaseCatalog();
+  }, [supabase]);
 
   const handleSelectCollection = (collectionId: string) => {
     setSelectedCollectionId(collectionId);
-    // Smooth scroll down to featured sets grid
     const el = document.getElementById('featured-sets');
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
@@ -48,7 +94,9 @@ export default function Home() {
   };
 
   const handleInspectFlagship = () => {
-    setQuickViewProduct(PRODUCTS[0]);
+    if (products.length > 0) {
+      setQuickViewProduct(products[0]);
+    }
   };
 
   return (
@@ -57,11 +105,7 @@ export default function Home() {
       <AnnouncementBar />
 
       {/* 2. Main Navigation Bar */}
-      <Navbar 
-        onOpenSearch={() => setSearchOpen(true)}
-        onOpenCart={() => setCartOpen(true)}
-        cartCount={cartItems.length}
-      />
+      <Navbar onOpenSearch={() => setSearchOpen(true)} />
 
       {/* Main Content Sections */}
       <main style={{ flex: 1 }}>
@@ -76,16 +120,18 @@ export default function Home() {
           onInspectFlagship={handleInspectFlagship}
         />
 
-        {/* 4. Featured Collections */}
+        {/* 4. Featured Collections (Loaded from Supabase) */}
         <FeaturedCollections 
+          collections={collections}
           onSelectCollection={handleSelectCollection}
           selectedCollectionId={selectedCollectionId}
         />
 
-        {/* 5. Featured Products */}
+        {/* 5. Featured Products (Loaded from Supabase) */}
         <FeaturedProducts 
+          products={products}
           onQuickView={(product) => setQuickViewProduct(product)}
-          onAddToCart={handleAddToCart}
+          onAddToCart={addToCart}
           selectedCollectionId={selectedCollectionId}
           onResetCollectionFilter={() => setSelectedCollectionId(null)}
           cartItemIds={cartItems.map(item => item.id)}
@@ -108,22 +154,20 @@ export default function Home() {
       <QuickViewModal 
         product={quickViewProduct}
         onClose={() => setQuickViewProduct(null)}
-        onAddToCart={handleAddToCart}
+        onAddToCart={addToCart}
         inCart={quickViewProduct ? cartItems.some(i => i.id === quickViewProduct.id) : false}
       />
 
       <CartDrawer 
         isOpen={cartOpen}
         onClose={() => setCartOpen(false)}
-        items={cartItems}
-        onRemoveItem={handleRemoveFromCart}
-        onClearCart={handleClearCart}
       />
 
       <SearchModal 
         isOpen={searchOpen}
         onClose={() => setSearchOpen(false)}
         onSelectProduct={(product) => setQuickViewProduct(product)}
+        products={products}
       />
     </div>
   );

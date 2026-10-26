@@ -1,13 +1,15 @@
 import React from 'react';
 import { ArrowUpRight, Box, Compass, Sparkles, Cpu } from 'lucide-react';
-import { COLLECTIONS } from '../data/products';
+import { COLLECTIONS, CollectionItem } from '../data/products';
 
 interface FeaturedCollectionsProps {
+  collections?: CollectionItem[];
   onSelectCollection: (id: string) => void;
   selectedCollectionId: string | null;
 }
 
 export default function FeaturedCollections({
+  collections = COLLECTIONS,
   onSelectCollection,
   selectedCollectionId,
 }: FeaturedCollectionsProps) {
@@ -43,7 +45,7 @@ export default function FeaturedCollections({
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
           gap: '24px'
         }}>
-          {COLLECTIONS.map((col) => {
+          {collections.map((col) => {
             const isSelected = selectedCollectionId === col.id;
 
             return (

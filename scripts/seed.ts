@@ -14,16 +14,17 @@ type ProductInsert = Database['public']['Tables']['products']['Insert'];
 
 async function seed() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const secretKey =
+    process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!supabaseUrl || !serviceRoleKey) {
+  if (!supabaseUrl || !secretKey) {
     console.error(
-      'Error: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in environment to run seed.'
+      'Error: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY must be set in environment to run seed.'
     );
     process.exit(1);
   }
 
-  const supabase = createClient<Database>(supabaseUrl, serviceRoleKey);
+  const supabase = createClient<Database>(supabaseUrl, secretKey);
   console.log('Seeding collections...');
 
   const collectionRecords: CollectionInsert[] = COLLECTIONS.map((col) => ({

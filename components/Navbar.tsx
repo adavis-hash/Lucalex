@@ -1,19 +1,25 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Search, ShoppingBag, Menu, X, ChevronDown, Compass, Box, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, ShoppingBag, Menu, X, ChevronDown, Compass, Box, Sparkles, User as UserIcon, LogOut, Package, ShieldCheck } from 'lucide-react';
 import BrandLogo from './BrandLogo';
+import { useAuth } from '@/context/AuthContext';
+import { useCart } from '@/context/CartContext';
+import Link from 'next/link';
 
 interface NavbarProps {
   onOpenSearch: () => void;
-  onOpenCart: () => void;
-  cartCount?: number;
 }
 
-export default function Navbar({ onOpenSearch, onOpenCart, cartCount = 1 }: NavbarProps) {
+export default function Navbar({ onOpenSearch }: NavbarProps) {
+  const { user, profile, isAdmin, signOut, openAuthModal } = useAuth();
+  const { cartCount, setCartOpen } = useCart();
+
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [collectionsDropdownOpen, setCollectionsDropdownOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -26,6 +32,20 @@ export default function Navbar({ onOpenSearch, onOpenCart, cartCount = 1 }: Navb
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Close user dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Builder';
+  const initial = displayName.charAt(0).toUpperCase();
 
   return (
     <>
@@ -47,9 +67,9 @@ export default function Navbar({ onOpenSearch, onOpenCart, cartCount = 1 }: Navb
           gap: '24px'
         }}>
           {/* Brand Logo */}
-          <a href="#" style={{ display: 'flex', alignItems: 'center' }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
             <BrandLogo />
-          </a>
+          </Link>
 
           {/* Desktop Navigation Links */}
           <nav style={{
@@ -57,7 +77,7 @@ export default function Navbar({ onOpenSearch, onOpenCart, cartCount = 1 }: Navb
             alignItems: 'center',
             gap: '32px'
           }} className="desktop-nav">
-            <a href="#" className="nav-link nav-link-active">Home</a>
+            <Link href="/" className="nav-link nav-link-active">Home</Link>
             
             <a href="#featured-sets" className="nav-link">Shop</a>
             
@@ -132,6 +152,17 @@ export default function Navbar({ onOpenSearch, onOpenCart, cartCount = 1 }: Navb
 
             <a href="#themes" className="nav-link">Themes</a>
             <a href="#about" className="nav-link">About Us</a>
+
+            {/* Direct Admin Link for Admin Users */}
+            {isAdmin && (
+              <Link 
+                href="/admin" 
+                className="nav-link" 
+                style={{ color: '#2563eb', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              >
+                <ShieldCheck size={15} /> Admin
+              </Link>
+            )}
           </nav>
 
           {/* Action Icons */}
@@ -146,13 +177,13 @@ export default function Navbar({ onOpenSearch, onOpenCart, cartCount = 1 }: Navb
               <Search size={20} />
             </button>
 
-            {/* Shopping Bag Button (Demonstration Placeholder) */}
+            {/* Shopping Bag Button */}
             <button 
-              onClick={onOpenCart}
+              onClick={() => setCartOpen(true)}
               aria-label="View shopping bag"
               className="icon-btn"
               style={{ position: 'relative' }}
-              title="Shopping bag preview"
+              title="Shopping bag"
             >
               <ShoppingBag size={20} />
               {cartCount > 0 && (
@@ -176,6 +207,127 @@ export default function Navbar({ onOpenSearch, onOpenCart, cartCount = 1 }: Navb
                 </span>
               )}
             </button>
+
+            {/* User Account / Auth Button */}
+            {user ? (
+              <div ref={userMenuRef} style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                  aria-label="User account menu"
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    backgroundColor: isAdmin ? '#1e293b' : '#2563eb',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: '0.875rem',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
+                  }}
+                  title={displayName}
+                >
+                  {initial}
+                </button>
+
+                {userDropdownOpen && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    right: 0,
+                    width: '220px',
+                    backgroundColor: '#ffffff',
+                    borderRadius: '12px',
+                    boxShadow: '0 12px 30px rgba(15, 23, 42, 0.15)',
+                    border: '1px solid #e2e8f0',
+                    padding: '8px',
+                    zIndex: 100,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}>
+                    <div style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9' }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#0f172a' }}>{displayName}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.email}</div>
+                      {isAdmin && (
+                        <span style={{
+                          display: 'inline-block',
+                          backgroundColor: '#dbeafe',
+                          color: '#1e40af',
+                          fontSize: '0.625rem',
+                          fontWeight: 800,
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          marginTop: '4px',
+                          textTransform: 'uppercase'
+                        }}>
+                          Admin Mode
+                        </span>
+                      )}
+                    </div>
+
+                    <Link 
+                      href="/orders" 
+                      onClick={() => setUserDropdownOpen(false)}
+                      className="dropdown-item"
+                    >
+                      <Package size={16} color="#2563eb" />
+                      <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>My Orders</span>
+                    </Link>
+
+                    {isAdmin && (
+                      <Link 
+                        href="/admin" 
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="dropdown-item"
+                      >
+                        <ShieldCheck size={16} color="#059669" />
+                        <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Admin Dashboard</span>
+                      </Link>
+                    )}
+
+                    <div style={{ height: '1px', backgroundColor: '#f1f5f9', margin: '4px 0' }} />
+
+                    <button
+                      onClick={() => {
+                        setUserDropdownOpen(false);
+                        signOut();
+                      }}
+                      className="dropdown-item"
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        color: '#ef4444'
+                      }}
+                    >
+                      <LogOut size={16} color="#ef4444" />
+                      <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Sign Out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={() => openAuthModal('signin')}
+                className="btn btn-secondary"
+                style={{
+                  padding: '8px 14px',
+                  fontSize: '0.8125rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <UserIcon size={16} /> Sign In
+              </button>
+            )}
 
             {/* Mobile Menu Toggle */}
             <button 
@@ -207,13 +359,13 @@ export default function Navbar({ onOpenSearch, onOpenCart, cartCount = 1 }: Navb
           gap: '16px',
           animation: 'fadeIn 0.2s ease-out'
         }}>
-          <a 
-            href="#" 
+          <Link 
+            href="/" 
             onClick={() => setMobileMenuOpen(false)}
             style={{ fontWeight: 700, fontSize: '1.05rem', color: '#0f172a' }}
           >
             Home
-          </a>
+          </Link>
           <a 
             href="#featured-sets" 
             onClick={() => setMobileMenuOpen(false)}
@@ -228,30 +380,57 @@ export default function Navbar({ onOpenSearch, onOpenCart, cartCount = 1 }: Navb
           >
             Collections (Architecture, Space, Vehicles, Fantasy)
           </a>
-          <a 
-            href="#themes" 
+          <Link 
+            href="/orders" 
             onClick={() => setMobileMenuOpen(false)}
             style={{ fontWeight: 600, fontSize: '1rem', color: '#334155' }}
           >
-            Themes & Master Builder Series
-          </a>
-          <a 
-            href="#about" 
-            onClick={() => setMobileMenuOpen(false)}
-            style={{ fontWeight: 600, fontSize: '1rem', color: '#334155' }}
-          >
-            About MODULO Philosophy
-          </a>
-          <div style={{ paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
+            My Orders
+          </Link>
+          {isAdmin && (
+            <Link 
+              href="/admin" 
+              onClick={() => setMobileMenuOpen(false)}
+              style={{ fontWeight: 700, fontSize: '1rem', color: '#2563eb' }}
+            >
+              Admin Dashboard
+            </Link>
+          )}
+
+          <div style={{ paddingTop: '12px', borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {user ? (
+              <button 
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  signOut();
+                }}
+                className="btn btn-secondary"
+                style={{ width: '100%', justifyContent: 'center' }}
+              >
+                Sign Out ({displayName})
+              </button>
+            ) : (
+              <button 
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  openAuthModal('signin');
+                }}
+                className="btn btn-primary"
+                style={{ width: '100%', justifyContent: 'center' }}
+              >
+                Sign In / Join
+              </button>
+            )}
+
             <button 
               onClick={() => {
                 setMobileMenuOpen(false);
-                onOpenCart();
+                setCartOpen(true);
               }}
-              className="btn btn-primary"
-              style={{ width: '100%' }}
+              className="btn btn-secondary"
+              style={{ width: '100%', justifyContent: 'center' }}
             >
-              <ShoppingBag size={18} /> View Concept Bag ({cartCount})
+              <ShoppingBag size={18} /> View Cart ({cartCount})
             </button>
           </div>
         </div>
@@ -297,6 +476,7 @@ export default function Navbar({ onOpenSearch, onOpenCart, cartCount = 1 }: Navb
           background-color: #f8fafc;
           border: 1px solid #e2e8f0;
           transition: all 150ms ease;
+          cursor: pointer;
         }
         .icon-btn:hover {
           background-color: #ffffff;
@@ -312,6 +492,7 @@ export default function Navbar({ onOpenSearch, onOpenCart, cartCount = 1 }: Navb
           border-radius: 8px;
           transition: background-color 150ms ease;
           color: #0f172a;
+          text-decoration: none;
         }
         .dropdown-item:hover {
           background-color: #f1f5f9;

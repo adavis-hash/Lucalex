@@ -8,12 +8,14 @@ interface SearchModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectProduct: (product: ProductItem) => void;
+  products?: ProductItem[];
 }
 
 export default function SearchModal({
   isOpen,
   onClose,
   onSelectProduct,
+  products = PRODUCTS,
 }: SearchModalProps) {
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -35,8 +37,8 @@ export default function SearchModal({
   if (!isOpen) return null;
 
   const results = query.trim() === '' 
-    ? PRODUCTS.slice(0, 4) 
-    : PRODUCTS.filter((p) => 
+    ? products.slice(0, 4) 
+    : products.filter((p) => 
         p.name.toLowerCase().includes(query.toLowerCase()) ||
         p.collectionName.toLowerCase().includes(query.toLowerCase()) ||
         p.setNumber.toLowerCase().includes(query.toLowerCase()) ||
